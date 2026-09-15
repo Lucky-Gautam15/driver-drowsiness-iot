@@ -1500,6 +1500,49 @@ th {
   50% { transform: scale(1.12); opacity: 1; }
 }
 
+.lux-hologram-canvas {
+  width: 100%;
+  height: 250px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: radial-gradient(circle at center, rgba(14, 165, 233, 0.08) 0%, rgba(8, 14, 28, 0.7) 70%);
+}
+
+.lux-hologram-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.lux-hud-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 20px;
+  padding: 22px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.55),
+    0 0 35px rgba(56, 189, 248, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease;
+  transform-style: preserve-3d;
+}
+
+.lux-hud-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 0 45px rgba(56, 189, 248, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
 .reticle-label {
   font-size: 9px;
   font-weight: 700;
@@ -1612,18 +1655,28 @@ th {
 
 .lux-auth-card {
   width: 100%;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(56, 189, 248, 0.2);
   border-radius: 22px;
   padding: 36px 30px;
   box-shadow: 
-    0 25px 60px -15px rgba(0, 0, 0, 0.8),
-    0 0 30px rgba(37, 99, 235, 0.12),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    0 30px 70px -15px rgba(0, 0, 0, 0.85),
+    0 0 35px rgba(37, 99, 235, 0.16),
+    inset 0 1px 1px rgba(255, 255, 255, 0.18);
   position: relative;
   overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease;
+  transform-style: preserve-3d;
+}
+
+.lux-auth-card:hover {
+  border-color: rgba(56, 189, 248, 0.38);
+  box-shadow: 
+    0 35px 80px -15px rgba(0, 0, 0, 0.9),
+    0 0 45px rgba(56, 189, 248, 0.22),
+    inset 0 1px 1px rgba(255, 255, 255, 0.24);
 }
 
 .lux-auth-card::before {

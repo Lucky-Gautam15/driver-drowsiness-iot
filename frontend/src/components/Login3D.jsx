@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import Hologram3D from "./Hologram3D";
 
 export default function Login3D({
   loginForm,
@@ -16,6 +17,28 @@ export default function Login3D({
   const [showPassword, setShowPassword] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
 
+  // 3D Parallax Tilt state for Cockpit & Auth cards
+  const [cockpitTilt, setCockpitTilt] = useState({ x: 0, y: 0 });
+  const [authTilt, setAuthTilt] = useState({ x: 0, y: 0 });
+
+  const handleCockpitMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 8;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -8;
+    setCockpitTilt({ x, y });
+  };
+
+  const handleAuthMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 7;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -7;
+    setAuthTilt({ x, y });
+  };
+
+  const handleResetTilt = (setter) => {
+    setter({ x: 0, y: 0 });
+  };
+
   return (
     <div className="lux-portal-container">
       {/* LUXURY AMBIENT BACKGROUND WITH RADIAL BEAMS */}
@@ -24,7 +47,7 @@ export default function Login3D({
       <div className="lux-grid-overlay"></div>
 
       <div className="lux-portal-wrapper">
-        {/* LEFT PANEL: AUTOMOTIVE COCKPIT TELEMETRY SHOWCASE */}
+        {/* LEFT PANEL: AUTOMOTIVE COCKPIT 3D TELEMETRY SHOWCASE */}
         <div className="lux-cockpit-panel">
           <div className="lux-brand-header">
             <div className="lux-shield-icon">
@@ -39,38 +62,66 @@ export default function Login3D({
             </div>
           </div>
 
-          {/* INTERACTIVE 3D RADAR HUD CANVAS */}
-          <div className="lux-hud-card">
+          {/* INTERACTIVE 3D WEBGL HOLOGRAM HUD CARD WITH 3D TILT */}
+          <div
+            className="lux-hud-card"
+            style={{
+              transform: `perspective(1000px) rotateX(${cockpitTilt.y}deg) rotateY(${cockpitTilt.x}deg)`,
+            }}
+            onMouseMove={handleCockpitMouseMove}
+            onMouseLeave={() => handleResetTilt(setCockpitTilt)}
+          >
             <div className="lux-hud-header">
               <span className="lux-hud-pill">
-                <span className="lux-hud-dot"></span> CABIN TELEMETRY RADAR
+                <span className="lux-hud-dot"></span> 3D CABIN TELEMETRY HOLOGRAM
               </span>
-              <span className="lux-hud-fps">60 FPS EDGE AI • 14ms LATENCY</span>
+              <span className="lux-hud-fps">60 FPS WEBGL • 14ms LATENCY</span>
             </div>
 
-            <div className="lux-radar-visual">
-              <div className="lux-radar-circle c-1"></div>
-              <div className="lux-radar-circle c-2"></div>
-              <div className="lux-radar-circle c-3"></div>
-              <div className="lux-radar-cross-h"></div>
-              <div className="lux-radar-cross-v"></div>
-              <div className="lux-radar-sweep"></div>
+            {/* EMBEDDED THREE.JS 3D WEBGL INTERACTIVE CANVAS */}
+            <div style={{ position: "relative" }}>
+              <Hologram3D />
 
-              {/* TARGET DRIVER RETICLE WITH FUTURISTIC WIREFRAME AVATAR */}
-              <div className="lux-target-reticle">
-                <div className="lux-avatar-wireframe">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <circle cx="12" cy="8" r="4"/>
-                    <path d="M6 20v-2a6 6 0 0 1 12 0v2"/>
-                    <circle cx="10" cy="8" r="0.8" fill="currentColor"/>
-                    <circle cx="14" cy="8" r="0.8" fill="currentColor"/>
-                  </svg>
-                </div>
-                <span className="reticle-label">DRIVER FOCAL LOCK</span>
+              {/* OVERLAY RETICLE BADGE */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "12px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  background: "rgba(8, 14, 28, 0.8)",
+                  border: "1px solid rgba(34, 197, 94, 0.35)",
+                  padding: "4px 14px",
+                  borderRadius: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <span
+                  style={{
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    background: "#22c55e",
+                    boxShadow: "0 0 8px #22c55e",
+                  }}
+                ></span>
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    letterSpacing: "0.08em",
+                    color: "#4ade80",
+                  }}
+                >
+                  3D DRIVER MESH SYNCED
+                </span>
               </div>
             </div>
 
-            <div className="lux-hud-stats">
+            <div className="lux-hud-stats" style={{ marginTop: "14px" }}>
               <div className="lux-stat-item">
                 <span className="stat-name">Facial Mesh</span>
                 <span className="stat-val text-cyan">468 Landmarks</span>
@@ -119,9 +170,16 @@ export default function Login3D({
           </div>
         </div>
 
-        {/* RIGHT PANEL: PILOT AUTHENTICATION CONSOLE */}
+        {/* RIGHT PANEL: PILOT AUTHENTICATION CONSOLE WITH 3D PERSPECTIVE TILT */}
         <div className="lux-auth-panel">
-          <div className="lux-auth-card">
+          <div
+            className="lux-auth-card"
+            style={{
+              transform: `perspective(1000px) rotateX(${authTilt.y}deg) rotateY(${authTilt.x}deg)`,
+            }}
+            onMouseMove={handleAuthMouseMove}
+            onMouseLeave={() => handleResetTilt(setAuthTilt)}
+          >
             <div className="lux-console-badge">
               <span className="badge-shield-icon">🛡️</span>
               <span>ENTERPRISE CABIN CONSOLE</span>
