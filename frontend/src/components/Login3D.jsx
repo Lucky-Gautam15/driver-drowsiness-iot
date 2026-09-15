@@ -13,6 +13,9 @@ export default function Login3D({
   authError,
   setAuthError,
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
+
   return (
     <div className="lux-portal-container">
       {/* LUXURY AMBIENT BACKGROUND WITH RADIAL BEAMS */}
@@ -25,14 +28,14 @@ export default function Login3D({
         <div className="lux-cockpit-panel">
           <div className="lux-brand-header">
             <div className="lux-shield-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <path d="m9 12 2 2 4-4"/>
               </svg>
             </div>
             <div>
               <div className="lux-brand-title">DrowsyGuard OS</div>
-              <div className="lux-brand-subtitle">AI & IoT Commercial Fleet Safety</div>
+              <div className="lux-brand-subtitle">AI & IoT Commercial Fleet Safety Cockpit</div>
             </div>
           </div>
 
@@ -42,7 +45,7 @@ export default function Login3D({
               <span className="lux-hud-pill">
                 <span className="lux-hud-dot"></span> CABIN TELEMETRY RADAR
               </span>
-              <span className="lux-hud-fps">60 FPS EDGE AI</span>
+              <span className="lux-hud-fps">60 FPS EDGE AI • 14ms LATENCY</span>
             </div>
 
             <div className="lux-radar-visual">
@@ -53,9 +56,16 @@ export default function Login3D({
               <div className="lux-radar-cross-v"></div>
               <div className="lux-radar-sweep"></div>
 
-              {/* TARGET DRIVER RETICLE */}
+              {/* TARGET DRIVER RETICLE WITH FUTURISTIC WIREFRAME AVATAR */}
               <div className="lux-target-reticle">
-                <div className="reticle-box"></div>
+                <div className="lux-avatar-wireframe">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M6 20v-2a6 6 0 0 1 12 0v2"/>
+                    <circle cx="10" cy="8" r="0.8" fill="currentColor"/>
+                    <circle cx="14" cy="8" r="0.8" fill="currentColor"/>
+                  </svg>
+                </div>
                 <span className="reticle-label">DRIVER FOCAL LOCK</span>
               </div>
             </div>
@@ -114,12 +124,12 @@ export default function Login3D({
           <div className="lux-auth-card">
             <div className="lux-console-badge">
               <span className="badge-shield-icon">🛡️</span>
-              <span>ENTERPRISE FLEET ACCESS</span>
+              <span>ENTERPRISE CABIN CONSOLE</span>
             </div>
 
             <h2 className="lux-auth-title">Driver Authentication</h2>
             <p className="lux-auth-desc">
-              Sign in with your driver credentials to initialize your monitoring session.
+              Sign in with your driver Gmail or ID to initialize your live safety session.
             </p>
 
             {/* TAB SELECTOR */}
@@ -171,40 +181,64 @@ export default function Login3D({
 
             {!isRegisterMode ? (
               /* LOGIN FORM */
-              <form onSubmit={handleLoginSubmit} className="lux-form">
+              <form onSubmit={handleLoginSubmit} className="lux-form" autoComplete="off">
                 <div className="lux-input-group">
-                  <label>Driver ID or Email</label>
+                  <label htmlFor="login_email">Enter your Gmail or Driver ID</label>
                   <div className="lux-input-wrapper">
                     <svg className="input-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
+                      <rect x="2" y="4" width="20" height="16" rx="2"/>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                     </svg>
                     <input
+                      id="login_email"
+                      name="pilot_login_email_unq"
                       type="text"
-                      placeholder="e.g. driver_01 or rajesh@fleet.com"
+                      placeholder="Enter your Gmail (e.g. driver@gmail.com)"
                       value={loginForm.email}
                       onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                       required
-                      autoComplete="username"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
 
                 <div className="lux-input-group">
-                  <label>Password</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <label htmlFor="login_pass">Password</label>
+                  </div>
                   <div className="lux-input-wrapper">
                     <svg className="input-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
                     <input
-                      type="password"
-                      placeholder="Enter cabin password"
+                      id="login_pass"
+                      name="pilot_login_pass_unq"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
                       value={loginForm.password}
                       onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                       required
-                      autoComplete="current-password"
+                      autoComplete="new-password"
                     />
+                    <button
+                      type="button"
+                      className="lux-password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                          <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -232,13 +266,13 @@ export default function Login3D({
                       setAuthError("");
                     }}
                   >
-                    Enroll your driver ID here
+                    Enroll your driver Gmail here
                   </button>
                 </div>
               </form>
             ) : (
               /* REGISTRATION FORM */
-              <form onSubmit={handleRegisterSubmit} className="lux-form">
+              <form onSubmit={handleRegisterSubmit} className="lux-form" autoComplete="off">
                 <div className="lux-input-group">
                   <label>Full Driver Name</label>
                   <div className="lux-input-wrapper">
@@ -247,29 +281,33 @@ export default function Login3D({
                       <circle cx="12" cy="7" r="4"/>
                     </svg>
                     <input
+                      name="pilot_reg_name_unq"
                       type="text"
-                      placeholder="e.g. Ramesh Kumar"
+                      placeholder="Enter driver full name"
                       value={regForm.name}
                       onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
                       required
+                      autoComplete="off"
                     />
                   </div>
                 </div>
 
                 <div className="lux-form-row">
                   <div className="lux-input-group">
-                    <label>Driver ID / Email</label>
+                    <label>Enter your Gmail</label>
                     <div className="lux-input-wrapper">
                       <svg className="input-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                        <polyline points="22,6 12,13 2,6"/>
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                       </svg>
                       <input
+                        name="pilot_reg_email_unq"
                         type="text"
-                        placeholder="driver_01"
+                        placeholder="Enter your Gmail (e.g. driver@gmail.com)"
                         value={regForm.email}
                         onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
                         required
+                        autoComplete="off"
                       />
                     </div>
                   </div>
@@ -282,19 +320,39 @@ export default function Login3D({
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                       <input
-                        type="password"
-                        placeholder="Min 4 chars"
+                        name="pilot_reg_pass_unq"
+                        type={showRegPassword ? "text" : "password"}
+                        placeholder="Enter password (min 4 chars)"
                         value={regForm.password}
                         onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
                         required
+                        autoComplete="new-password"
                       />
+                      <button
+                        type="button"
+                        className="lux-password-toggle"
+                        onClick={() => setShowRegPassword(!showRegPassword)}
+                        title={showRegPassword ? "Hide password" : "Show password"}
+                      >
+                        {showRegPassword ? (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                          </svg>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
 
                 <div className="lux-form-row">
                   <div className="lux-input-group">
-                    <label>Assigned Vehicle</label>
+                    <label>Vehicle Number</label>
                     <div className="lux-input-wrapper">
                       <svg className="input-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="1" y="3" width="15" height="13"/>
@@ -303,46 +361,31 @@ export default function Login3D({
                         <circle cx="18.5" cy="18.5" r="2.5"/>
                       </svg>
                       <input
+                        name="pilot_reg_veh_unq"
                         type="text"
-                        placeholder="DL-01-AB-1234"
+                        placeholder="e.g. DL-01-AB-1234"
                         value={regForm.vehicleNumber}
                         onChange={(e) => setRegForm({ ...regForm, vehicleNumber: e.target.value })}
+                        autoComplete="off"
                       />
                     </div>
                   </div>
 
                   <div className="lux-input-group">
-                    <label>License Number</label>
+                    <label>Contact Phone</label>
                     <div className="lux-input-wrapper">
                       <svg className="input-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                       </svg>
                       <input
+                        name="pilot_reg_phone_unq"
                         type="text"
-                        placeholder="DL-142023000987"
-                        value={regForm.licenseNumber}
-                        onChange={(e) => setRegForm({ ...regForm, licenseNumber: e.target.value })}
+                        placeholder="e.g. +91 98765 43210"
+                        value={regForm.phone}
+                        onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                        autoComplete="off"
                       />
                     </div>
-                  </div>
-                </div>
-
-                <div className="lux-input-group">
-                  <label>Contact Phone</label>
-                  <div className="lux-input-wrapper">
-                    <svg className="input-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                    </svg>
-                    <input
-                      type="text"
-                      placeholder="+91 98765 43210"
-                      value={regForm.phone}
-                      onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                    />
                   </div>
                 </div>
 
@@ -360,7 +403,7 @@ export default function Login3D({
                       setAuthError("");
                     }}
                   >
-                    Sign In with Existing ID
+                    Sign In with Existing Gmail
                   </button>
                 </div>
               </form>
