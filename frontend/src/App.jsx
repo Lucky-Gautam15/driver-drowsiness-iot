@@ -105,23 +105,40 @@ function MainAppContent() {
         const data = await response.json();
 
         if (mounted) {
-          setDetection({
-            status: data.status ?? "OFFLINE",
-            score: Number(data.score ?? 0),
-            ear: Number(data.ear ?? 0),
-            mar: Number(data.mar ?? 0),
-            head_pose: data.head_pose ?? "UNKNOWN",
-            pitch: Number(data.pitch ?? 0),
-            eyes_closed: Boolean(data.eyes_closed),
-            yawning: Boolean(data.yawning),
-            head_down: Boolean(data.head_down),
-            camera: Boolean(data.camera),
-          });
-          setMonitoring(Boolean(data.camera));
+          const isCamActive = Boolean(data.camera);
+          if (!isCamActive) {
+            setDetection({
+              status: "STANDBY",
+              score: 0.0,
+              ear: 0.0,
+              mar: 0.0,
+              head_pose: "NORMAL",
+              pitch: 0.0,
+              eyes_closed: false,
+              yawning: false,
+              head_down: false,
+              camera: false,
+            });
+            setMonitoring(false);
+          } else {
+            setDetection({
+              status: data.status ?? "ONLINE",
+              score: Number(data.score ?? 0),
+              ear: Number(data.ear ?? 0),
+              mar: Number(data.mar ?? 0),
+              head_pose: data.head_pose ?? "UNKNOWN",
+              pitch: Number(data.pitch ?? 0),
+              eyes_closed: Boolean(data.eyes_closed),
+              yawning: Boolean(data.yawning),
+              head_down: Boolean(data.head_down),
+              camera: true,
+            });
+            setMonitoring(true);
+          }
         }
       } catch (err) {
         if (mounted) {
-          setDetection((prev) => ({ ...prev, status: "OFFLINE", camera: false }));
+          setDetection((prev) => ({ ...prev, status: "STANDBY", score: 0.0, camera: false }));
           setMonitoring(false);
         }
       }
@@ -169,7 +186,6 @@ function MainAppContent() {
   useEffect(() => {
     if (user) {
       refreshBackendData();
-      startMonitoring();
       const dataInterval = setInterval(refreshBackendData, 4000);
       return () => clearInterval(dataInterval);
     }
