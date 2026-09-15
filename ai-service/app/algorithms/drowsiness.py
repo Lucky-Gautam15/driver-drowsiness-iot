@@ -2,9 +2,9 @@ class DrowsinessDetector:
 
     def __init__(
         self,
-        ear_threshold=0.165,
+        ear_threshold=0.175,
         mar_threshold=0.60,
-        max_closed_frames=18
+        max_closed_frames=14
     ):
         self.ear_threshold = ear_threshold
         self.mar_threshold = mar_threshold
@@ -24,18 +24,21 @@ class DrowsinessDetector:
         self.smoothed_score = 0.0
 
     def update(self, ear, mar, head_status, left_ear=None, right_ear=None):
+        raw_ear = float(ear)
+        raw_mar = float(mar)
+
         # -----------------------------
-        # 0. Temporal EMA Smoothing
+        # 0. Fast responsive smoothing
         # -----------------------------
         if self.smoothed_ear is None:
-            self.smoothed_ear = float(ear)
+            self.smoothed_ear = raw_ear
         else:
-            self.smoothed_ear = 0.35 * float(ear) + 0.65 * self.smoothed_ear
+            self.smoothed_ear = 0.45 * raw_ear + 0.55 * self.smoothed_ear
 
         if self.smoothed_mar is None:
-            self.smoothed_mar = float(mar)
+            self.smoothed_mar = raw_mar
         else:
-            self.smoothed_mar = 0.35 * float(mar) + 0.65 * self.smoothed_mar
+            self.smoothed_mar = 0.40 * raw_mar + 0.60 * self.smoothed_mar
 
         cur_ear = self.smoothed_ear
         cur_mar = self.smoothed_mar
@@ -49,50 +52,42 @@ class DrowsinessDetector:
         )
 
         if max_ear > 0.17:
-            # Gradually adapt baseline to the individual's eye geometry
-            self.baseline_ear = 0.96 * self.baseline_ear + 0.04 * max_ear
+            self.baseline_ear = 0.95 * self.baseline_ear + 0.05 * max_ear
 
-        # Dynamic closure threshold: 68% of baseline, bounded between 0.135 and 0.175
-        self.adaptive_threshold = min(0.175, max(0.135, self.baseline_ear * 0.68))
+        # Closure threshold is 76% of baseline or at least 0.165
+        self.adaptive_threshold = max(0.165, min(0.185, self.baseline_ear * 0.76))
 
         # -----------------------------
-        # 2. Dual-Eye Closure Detection
+        # 2. Eye Closure Detection
         # -----------------------------
+        is_closing = cur_ear < self.adaptive_threshold
         if left_ear is not None and right_ear is not None:
-            # If at least one eye is clearly open, driver is watching the road
-            is_closing = (cur_ear < self.adaptive_threshold) and not (max(left_ear, right_ear) > self.adaptive_threshold + 0.04)
-        else:
-            is_closing = cur_ear < self.adaptive_threshold
+            is_closing = (cur_ear < self.adaptive_threshold) or (
+                left_ear < self.adaptive_threshold and right_ear < self.adaptive_threshold
+            )
 
         if is_closing:
             self.closed_frames += 1
         else:
-            # Fast recovery when eyes are open
-            self.closed_frames = max(0, self.closed_frames - 3)
+            # Fast reset when eyes are open
+            self.closed_frames = max(0, self.closed_frames - 4)
 
         eyes_closed = self.closed_frames >= self.max_closed_frames
 
         # -----------------------------
-        # 3. Eye Score Calculation
+        # 3. Precise Eye Fatigue Score
         # -----------------------------
         eye_score = 0.0
-
-        # Eyelid Droop only activates right above the closure threshold (not on wide open eyes)
-        droop_boundary = self.adaptive_threshold + 0.035
-        if cur_ear < droop_boundary and not eyes_closed:
-            droop_progress = max(0.0, min(1.0, (droop_boundary - cur_ear) / 0.035))
-            eye_score += droop_progress * 20.0
-
         if self.closed_frames > 0:
-            # Ramp during closing
-            ramp = min(1.0, self.closed_frames / float(self.max_closed_frames))
-            eye_score += ramp * 45.0
+            # Ramps up to 75% during initial closure frames
+            fraction = min(1.0, self.closed_frames / float(self.max_closed_frames))
+            eye_score = fraction * 75.0
 
-            # Prolonged closure (Microsleep) escalates to 100%
+            # Prolonged closure (Microsleep / Sleeping driver) escalates smoothly to 100.0%
             if self.closed_frames > self.max_closed_frames:
-                extra_frames = self.closed_frames - self.max_closed_frames
-                escalation = min(1.0, extra_frames / 15.0)
-                eye_score = 65.0 + (escalation * 35.0)
+                extra = self.closed_frames - self.max_closed_frames
+                escalation = min(1.0, extra / 10.0)
+                eye_score = 75.0 + (escalation * 25.0)
 
         # -----------------------------
         # 4. Yawning Tracking
@@ -103,22 +98,15 @@ class DrowsinessDetector:
             self.yawn_frames = max(0, self.yawn_frames - 1)
 
         yawning = self.yawn_frames >= 6
-
         yawn_score = 0.0
-        if cur_mar > 0.45:
-            open_ratio = max(0.0, min(1.0, (cur_mar - 0.45) / (self.mar_threshold - 0.45)))
-            yawn_score += open_ratio * 15.0
-
         if yawning:
-            intensity = min(1.0, (cur_mar - self.mar_threshold) / 0.20)
-            yawn_score += 15.0 + (intensity * 15.0)
+            intensity = min(1.0, (cur_mar - self.mar_threshold) / 0.15)
+            yawn_score = 20.0 + (intensity * 15.0)
 
         # -----------------------------
         # 5. Head Pose Tracking
         # -----------------------------
         head_down = head_status == "HEAD_DOWN"
-        head_up = head_status == "HEAD_UP"
-
         if head_down:
             self.head_down_frames += 1
         else:
@@ -126,33 +114,42 @@ class DrowsinessDetector:
 
         head_score = 0.0
         if head_down:
-            tilt_ramp = min(1.0, self.head_down_frames / 8.0)
-            head_score = 25.0 + (tilt_ramp * 15.0)
-        elif head_up:
-            head_score = 10.0
+            tilt_ramp = min(1.0, self.head_down_frames / 6.0)
+            head_score = 25.0 + (tilt_ramp * 25.0)
 
         # -----------------------------
-        # 6. Composite Score
+        # 6. Composite Score Composition
         # -----------------------------
         if eyes_closed and head_down:
-            target_score = max(88.0, min(100.0, eye_score + head_score * 0.7))
+            target_score = 100.0  # Sleeping with head slumped is 100% danger
         elif eyes_closed:
-            target_score = eye_score
+            target_score = eye_score  # Scales from 75% -> 100.0%
+        elif self.closed_frames > 0:
+            target_score = eye_score + head_score * 0.5 + yawn_score * 0.5
+        elif head_down:
+            target_score = head_score
+        elif yawning:
+            target_score = yawn_score
         else:
-            target_score = eye_score + yawn_score + head_score
+            # EYES ARE OPEN, HEAD IS NORMAL, NO YAWNING -> EXACTLY 0.0!
+            target_score = 0.0
 
         target_score = min(100.0, max(0.0, target_score))
 
-        # Smooth output progression
-        self.smoothed_score = 0.35 * target_score + 0.65 * self.smoothed_score
-        final_score = round(min(100.0, max(0.0, self.smoothed_score)), 1)
+        # Fast decay to 0 when awake, smooth climb when closing
+        if target_score == 0.0:
+            self.smoothed_score = max(0.0, self.smoothed_score - 15.0)
+        else:
+            self.smoothed_score = 0.40 * target_score + 0.60 * self.smoothed_score
 
-        # -----------------------------
-        # 7. Final Alert Status
-        # -----------------------------
-        if final_score >= 55.0 or eyes_closed or (head_down and self.head_down_frames >= 12):
+        final_score = round(min(100.0, max(0.0, self.smoothed_score)), 1)
+        if final_score < 0.5:
+            final_score = 0.0
+
+        # Status determination
+        if final_score >= 50.0 or eyes_closed:
             status = "DROWSY"
-        elif final_score >= 25.0 or yawning or head_down:
+        elif final_score >= 20.0 or yawning or head_down:
             status = "WARNING"
         else:
             status = "SAFE"

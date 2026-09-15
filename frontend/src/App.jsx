@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import Login3D from "./components/Login3D";
 import {
   driverService,
   deviceService,
@@ -252,163 +253,19 @@ function MainAppContent() {
   // --------------------------------------------------
   if (!user) {
     return (
-      <div style={styles.authContainer}>
-        <div style={styles.authCard}>
-          <div style={styles.authHeader}>
-            <div style={styles.authLogoIcon}>🚗</div>
-            <h1 style={styles.authTitle}>DrowsyGuard IoT</h1>
-            <p style={styles.authSub}>Driver Safety & Fatigue Monitoring System</p>
-          </div>
-
-          <div style={styles.authTabs}>
-            <button
-              style={{
-                ...styles.authTab,
-                borderBottom: !isRegisterMode ? "2px solid #3b82f6" : "2px solid transparent",
-                color: !isRegisterMode ? "#3b82f6" : "#94a3b8",
-              }}
-              onClick={() => {
-                setIsRegisterMode(false);
-                setAuthError("");
-              }}
-            >
-              Driver Login
-            </button>
-            <button
-              style={{
-                ...styles.authTab,
-                borderBottom: isRegisterMode ? "2px solid #3b82f6" : "2px solid transparent",
-                color: isRegisterMode ? "#3b82f6" : "#94a3b8",
-              }}
-              onClick={() => {
-                setIsRegisterMode(true);
-                setAuthError("");
-              }}
-            >
-              New Driver Register
-            </button>
-          </div>
-
-          {authError && <div style={styles.authAlert}>⚠️ {authError}</div>}
-
-          {!isRegisterMode ? (
-            /* LOGIN FORM */
-            <form onSubmit={handleLoginSubmit} style={styles.authForm}>
-              <div>
-                <label style={styles.label}>Driver ID or Email</label>
-                <input
-                  style={styles.input}
-                  type="text"
-                  placeholder="e.g. driver101 or rajesh@fleet.com"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={styles.label}>Password</label>
-                <input
-                  style={styles.input}
-                  type="password"
-                  placeholder="Enter your secure password"
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                  required
-                />
-              </div>
-
-              <button type="submit" style={styles.authButton} disabled={authLoading}>
-                {authLoading ? "Authenticating..." : "Sign In to Cabin Console"}
-              </button>
-
-              <p style={{ textAlign: "center", fontSize: "12px", color: "#64748b", margin: "8px 0 0 0" }}>
-                First time here? Click <strong>"New Driver Register"</strong> above to create your ID.
-              </p>
-            </form>
-          ) : (
-            /* REGISTER FORM */
-            <form onSubmit={handleRegisterSubmit} style={styles.authForm}>
-              <div>
-                <label style={styles.label}>Full Name</label>
-                <input
-                  style={styles.input}
-                  type="text"
-                  placeholder="e.g. Ramesh Kumar"
-                  value={regForm.name}
-                  onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <div>
-                  <label style={styles.label}>Driver ID / Email</label>
-                  <input
-                    style={styles.input}
-                    type="text"
-                    placeholder="e.g. driver_01"
-                    value={regForm.email}
-                    onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label style={styles.label}>Create Password</label>
-                  <input
-                    style={styles.input}
-                    type="password"
-                    placeholder="Min 4 characters"
-                    value={regForm.password}
-                    onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <div>
-                  <label style={styles.label}>Vehicle Number</label>
-                  <input
-                    style={styles.input}
-                    type="text"
-                    placeholder="e.g. DL-01-AB-1234"
-                    value={regForm.vehicleNumber}
-                    onChange={(e) => setRegForm({ ...regForm, vehicleNumber: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label style={styles.label}>License Number</label>
-                  <input
-                    style={styles.input}
-                    type="text"
-                    placeholder="e.g. DL-142023000987"
-                    value={regForm.licenseNumber}
-                    onChange={(e) => setRegForm({ ...regForm, licenseNumber: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={styles.label}>Contact Phone</label>
-                <input
-                  style={styles.input}
-                  type="text"
-                  placeholder="+91 ..."
-                  value={regForm.phone}
-                  onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                />
-              </div>
-
-              <button type="submit" style={styles.authButton} disabled={authLoading}>
-                {authLoading ? "Registering..." : "Register Driver Account"}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
+      <Login3D
+        loginForm={loginForm}
+        setLoginForm={setLoginForm}
+        regForm={regForm}
+        setRegForm={setRegForm}
+        isRegisterMode={isRegisterMode}
+        setIsRegisterMode={setIsRegisterMode}
+        handleLoginSubmit={handleLoginSubmit}
+        handleRegisterSubmit={handleRegisterSubmit}
+        authLoading={authLoading}
+        authError={authError}
+        setAuthError={setAuthError}
+      />
     );
   }
 
