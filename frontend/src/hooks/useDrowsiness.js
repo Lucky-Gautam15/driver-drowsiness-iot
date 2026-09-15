@@ -14,8 +14,9 @@ export default function useDrowsiness() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
+        const aiUrl = import.meta.env.VITE_AI_URL || "http://127.0.0.1:8000";
         const response = await fetch(
-          "http://127.0.0.1:8000/api/detection/status"
+          `${aiUrl}/api/detection/status`
         );
 
         if (!response.ok) {
