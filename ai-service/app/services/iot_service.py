@@ -1,4 +1,5 @@
-import requests
+import urllib.request
+import urllib.error
 
 class IoTService:
     def __init__(self):
@@ -12,8 +13,9 @@ class IoTService:
             return False
         try:
             url = f"http://{esp32_ip}/alarm?duration={duration_ms}"
-            res = requests.get(url, timeout=1.5)
-            return res.status_code == 200
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=1.5) as response:
+                return response.status == 200
         except Exception as err:
             print(f"[IoTService] Direct ESP32 ping failed: {err}")
             return False

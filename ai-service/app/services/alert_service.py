@@ -1,6 +1,8 @@
 import time
+import json
 import threading
-import requests
+import urllib.request
+import urllib.error
 from app.config import settings
 
 class AlertService:
@@ -51,13 +53,21 @@ class AlertService:
                 "yawning": payload.get("yawning", False),
                 "headDown": payload.get("head_down", False)
             }
-            response = requests.post(url, json=formatted_payload, timeout=2.5)
-            if response.status_code in [200, 201]:
-                print(f"[AlertService] Detection synced with backend: Status={payload.get('status')}")
-            else:
-                print(f"[AlertService] Backend returned HTTP {response.status_code}")
+            data = json.dumps(formatted_payload).encode("utf-8")
+            req = urllib.request.Request(
+                url,
+                data=data,
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=2.5) as response:
+                if response.status in [200, 201]:
+                    print(f"[AlertService] Detection synced with backend: Status={payload.get('status')}")
+                else:
+                    print(f"[AlertService] Backend returned HTTP {response.status}")
+        except urllib.error.URLError as err:
+            # Backend may still be spinning up
+            print(f"[AlertService] Backend unreachable: {err}")
         except Exception as err:
-            # Non-fatal error; backend might be offline or initializing
             print(f"[AlertService] Could not sync with backend: {err}")
 
 alert_service = AlertService()
