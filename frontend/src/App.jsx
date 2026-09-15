@@ -67,7 +67,7 @@ function MainAppContent() {
 
   // Settings State
   const [settings, setSettings] = useState({
-    earThreshold: 0.22,
+    earThreshold: 0.165,
     marThreshold: 0.60,
     soundAlert: true,
     esp32Alert: true,
@@ -728,7 +728,7 @@ function MainAppContent() {
               <div style={styles.card}>
                 <h3 style={{ margin: "0 0 16px 0", fontSize: "16px" }}>Telemetry Metrics</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <MetricRow label="Eye Aspect Ratio (EAR)" value={detection.ear.toFixed(3)} target="> 0.22" ok={detection.ear >= 0.22} />
+                  <MetricRow label="Eye Aspect Ratio (EAR)" value={detection.ear.toFixed(3)} target="> 0.165" ok={detection.ear >= 0.165} />
                   <MetricRow label="Mouth Aspect Ratio (MAR)" value={detection.mar.toFixed(3)} target="< 0.60" ok={detection.mar < 0.60} />
                   <MetricRow label="Head Pitch / Tilt" value={`${detection.head_pose} (${detection.pitch > 0 ? '+' : ''}${detection.pitch}°)`} target="NORMAL (0°)" ok={!detection.head_down} />
                   <MetricRow label="Attention Score" value={`${Math.max(0, 100 - score).toFixed(1)}%`} target="> 50%" ok={score < 50} />
@@ -994,7 +994,7 @@ function MainAppContent() {
                   onChange={(e) => setSettings({ ...settings, earThreshold: parseFloat(e.target.value) })}
                   style={{ width: "100%" }}
                 />
-                <small style={{ color: "#94a3b8" }}>Default: 0.22. Values below this trigger eye-closure counter.</small>
+                <small style={{ color: "#94a3b8" }}>Default: 0.165. Calibrated to avoid false positives with normal open eyes.</small>
               </div>
 
               <div>

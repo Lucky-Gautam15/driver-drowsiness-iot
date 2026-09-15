@@ -254,7 +254,9 @@ def detection_loop():
             result = drowsiness_detector.update(
                 ear,
                 mar,
-                head_pose
+                head_pose,
+                left_ear=left_ear,
+                right_ear=right_ear
             )
 
             # ---------------------------------------------
@@ -273,14 +275,15 @@ def detection_loop():
 
             # HUD Telemetry Overlay banner
             hud_bg_color = (0, 0, 180) if result["status"] == "DROWSY" else ((0, 140, 220) if result["status"] == "WARNING" else (0, 120, 0))
-            cv2.rectangle(annotated_frame, (12, 12), (380, 80), (15, 23, 42), -1)
-            cv2.rectangle(annotated_frame, (12, 12), (380, 80), hud_bg_color, 2)
+            cv2.rectangle(annotated_frame, (12, 12), (400, 80), (15, 23, 42), -1)
+            cv2.rectangle(annotated_frame, (12, 12), (400, 80), hud_bg_color, 2)
 
             status_text = f"AI STATUS: {result['status']} ({result['score']}%)"
             cv2.putText(annotated_frame, status_text, (22, 38), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
 
-            metrics_text = f"EAR: {result['ear']:.3f} | MAR: {result['mar']:.3f} | {head_pose}"
-            cv2.putText(annotated_frame, metrics_text, (22, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
+            th_val = result.get("threshold", 0.165)
+            metrics_text = f"EAR: {result['ear']:.3f} [TH: {th_val:.3f}] | MAR: {result['mar']:.3f} | {head_pose}"
+            cv2.putText(annotated_frame, metrics_text, (22, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 200), 1)
 
             with frame_lock:
                 latest_frame = annotated_frame

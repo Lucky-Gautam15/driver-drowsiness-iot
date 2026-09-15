@@ -14,7 +14,7 @@ PORT = int(os.getenv("PORT", 8000))
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:5000/api")
 
 # Drowsiness detection parameters
-EAR_THRESHOLD = float(os.getenv("EAR_THRESHOLD", 0.22))
+EAR_THRESHOLD = float(os.getenv("EAR_THRESHOLD", 0.165))
 MAR_THRESHOLD = float(os.getenv("MAR_THRESHOLD", 0.60))
-MAX_CLOSED_FRAMES = int(os.getenv("MAX_CLOSED_FRAMES", 15))
+MAX_CLOSED_FRAMES = int(os.getenv("MAX_CLOSED_FRAMES", 18))
 ALERT_COOLDOWN_SECONDS = float(os.getenv("ALERT_COOLDOWN_SECONDS", 4.0))
