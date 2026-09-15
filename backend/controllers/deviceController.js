@@ -4,39 +4,7 @@ const Detection = require("../models/Detection");
 
 const getDevices = async (req, res) => {
     try {
-        let devices = await Device.find().populate("assignedDriver", "name email");
-
-        // Seed default devices if none exist
-        if (devices.length === 0) {
-            const seedDevices = [
-                {
-                    deviceId: "ESP32-001",
-                    name: "Cabin Safety Sensor A",
-                    vehicleNumber: "VH-1024",
-                    location: "Delhi Highway (NH-44)",
-                    status: "Online",
-                    signal: "Excellent"
-                },
-                {
-                    deviceId: "ESP32-002",
-                    name: "Cabin Safety Sensor B",
-                    vehicleNumber: "VH-1032",
-                    location: "Jaipur Express Highway",
-                    status: "Online",
-                    signal: "Good"
-                },
-                {
-                    deviceId: "ESP32-003",
-                    name: "Driver Alert Unit C",
-                    vehicleNumber: "VH-1018",
-                    location: "City Logistics Terminal",
-                    status: "Offline",
-                    signal: "No Signal"
-                }
-            ];
-
-            devices = await Device.insertMany(seedDevices);
-        }
+        const devices = await Device.find().populate("assignedDriver", "name email");
 
         res.json({
             success: true,
@@ -149,7 +117,7 @@ const deleteDevice = async (req, res) => {
 const checkEsp32AlertStatus = async (req, res) => {
     try {
         const deviceId = (req.query.deviceId || "ESP32-001").toUpperCase();
-        const clientIp = req.ip || req.connection.remoteAddress;
+        const clientIp = req.ip || req.connection?.remoteAddress || "127.0.0.1";
 
         // Update heartbeat and mark online
         await Device.findOneAndUpdate(
@@ -173,7 +141,7 @@ const checkEsp32AlertStatus = async (req, res) => {
         const latestDetection = await Detection.findOne().sort({ createdAt: -1 });
 
         const isDrowsy =
-            (latestDetection && (latestDetection.status === "DROWSY" || latestDetection.score >= 50)) ||
+            (latestDetection && (latestDetection.status === "DROWSY" || latestDetection.score >= 55)) ||
             !!unacknowledgedAlert;
 
         const alertActive = isDrowsy;

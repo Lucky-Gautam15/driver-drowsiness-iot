@@ -1,14 +1,13 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import {
   driverService,
   deviceService,
   alertService,
   detectionService,
-  dashboardService,
 } from "./services/api";
 
 const AI_URL = import.meta.env.VITE_AI_URL || "http://127.0.0.1:8000";
-const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const menuItems = [
   { name: "Dashboard", icon: "📊" },
@@ -22,29 +21,47 @@ const menuItems = [
 
 const initialDetection = {
   status: "OFFLINE",
-  score: 0,
-  ear: 0,
-  mar: 0,
+  score: 0.0,
+  ear: 0.0,
+  mar: 0.0,
   head_pose: "UNKNOWN",
-  pitch: 0,
+  pitch: 0.0,
   eyes_closed: false,
   yawning: false,
   head_down: false,
   camera: false,
 };
 
+// ======================================================
+// MAIN APP COMPONENT (WRAPS WITH AUTH PROVIDER)
+// ======================================================
 export default function App() {
+  return (
+    <AuthProvider>
+      <MainAppContent />
+    </AuthProvider>
+  );
+}
+
+// ======================================================
+// AUTHENTICATED OR LOGIN CONTENT
+// ======================================================
+function MainAppContent() {
+  const { user, login, register, logout, loading: authLoading } = useAuth();
+
   const [activePage, setActivePage] = useState("Dashboard");
   const [detection, setDetection] = useState(initialDetection);
   const [monitoring, setMonitoring] = useState(false);
   const [error, setError] = useState("");
 
-  // Backend Dynamic States
+  // Backend Real States (NO DUMMY DATA)
   const [drivers, setDrivers] = useState([]);
   const [devices, setDevices] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [history, setHistory] = useState([]);
   const [backendOnline, setBackendOnline] = useState(false);
+
+  // Modal State for adding driver from dashboard
   const [newDriver, setNewDriver] = useState({ name: "", email: "", phone: "", licenseNumber: "" });
   const [showDriverModal, setShowDriverModal] = useState(false);
 
@@ -57,10 +74,27 @@ export default function App() {
     esp32Ip: "192.168.1.150",
   });
 
+  // Login / Register Form State
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: "",
+  });
+  const [regForm, setRegForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    vehicleNumber: "",
+    licenseNumber: "",
+    phone: "",
+  });
+  const [authError, setAuthError] = useState("");
+
   // --------------------------------------------------
-  // 1. POLL AI DETECTION STATUS
+  // 1. POLL AI STATUS (WHEN AUTHENTICATED)
   // --------------------------------------------------
   useEffect(() => {
+    if (!user) return;
     let mounted = true;
 
     const fetchStatus = async () => {
@@ -98,18 +132,19 @@ export default function App() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [user]);
 
   // --------------------------------------------------
-  // 2. FETCH BACKEND DATA (DRIVERS, DEVICES, ALERTS, HISTORY)
+  // 2. FETCH REAL DATA FROM BACKEND
   // --------------------------------------------------
   const refreshBackendData = async () => {
+    if (!user) return;
     try {
       const [driversRes, devicesRes, alertsRes, histRes] = await Promise.allSettled([
         driverService.getAll(),
         deviceService.getAll(),
         alertService.getAll(),
-        detectionService.getAll(25),
+        detectionService.getAll(30),
       ]);
 
       if (driversRes.status === "fulfilled" && driversRes.value.data.drivers) {
@@ -131,10 +166,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    refreshBackendData();
-    const dataInterval = setInterval(refreshBackendData, 4000);
-    return () => clearInterval(dataInterval);
-  }, []);
+    if (user) {
+      refreshBackendData();
+      const dataInterval = setInterval(refreshBackendData, 4000);
+      return () => clearInterval(dataInterval);
+    }
+  }, [user]);
 
   // --------------------------------------------------
   // 3. MONITORING CONTROLS
@@ -191,13 +228,196 @@ export default function App() {
     }
   };
 
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+    const res = await login(loginForm.email, loginForm.password);
+    if (!res.success) {
+      setAuthError(res.message);
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+    const res = await register(regForm);
+    if (!res.success) {
+      setAuthError(res.message);
+    }
+  };
+
+  // --------------------------------------------------
+  // 5. IF NOT AUTHENTICATED -> RENDER LOGIN/REGISTER GATE
+  // --------------------------------------------------
+  if (!user) {
+    return (
+      <div style={styles.authContainer}>
+        <div style={styles.authCard}>
+          <div style={styles.authHeader}>
+            <div style={styles.authLogoIcon}>🚗</div>
+            <h1 style={styles.authTitle}>DrowsyGuard IoT</h1>
+            <p style={styles.authSub}>Driver Safety & Fatigue Monitoring System</p>
+          </div>
+
+          <div style={styles.authTabs}>
+            <button
+              style={{
+                ...styles.authTab,
+                borderBottom: !isRegisterMode ? "2px solid #3b82f6" : "2px solid transparent",
+                color: !isRegisterMode ? "#3b82f6" : "#94a3b8",
+              }}
+              onClick={() => {
+                setIsRegisterMode(false);
+                setAuthError("");
+              }}
+            >
+              Driver Login
+            </button>
+            <button
+              style={{
+                ...styles.authTab,
+                borderBottom: isRegisterMode ? "2px solid #3b82f6" : "2px solid transparent",
+                color: isRegisterMode ? "#3b82f6" : "#94a3b8",
+              }}
+              onClick={() => {
+                setIsRegisterMode(true);
+                setAuthError("");
+              }}
+            >
+              New Driver Register
+            </button>
+          </div>
+
+          {authError && <div style={styles.authAlert}>⚠️ {authError}</div>}
+
+          {!isRegisterMode ? (
+            /* LOGIN FORM */
+            <form onSubmit={handleLoginSubmit} style={styles.authForm}>
+              <div>
+                <label style={styles.label}>Driver ID or Email</label>
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="e.g. driver101 or rajesh@fleet.com"
+                  value={loginForm.email}
+                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={styles.label}>Password</label>
+                <input
+                  style={styles.input}
+                  type="password"
+                  placeholder="Enter your secure password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                  required
+                />
+              </div>
+
+              <button type="submit" style={styles.authButton} disabled={authLoading}>
+                {authLoading ? "Authenticating..." : "Sign In to Cabin Console"}
+              </button>
+
+              <p style={{ textAlign: "center", fontSize: "12px", color: "#64748b", margin: "8px 0 0 0" }}>
+                First time here? Click <strong>"New Driver Register"</strong> above to create your ID.
+              </p>
+            </form>
+          ) : (
+            /* REGISTER FORM */
+            <form onSubmit={handleRegisterSubmit} style={styles.authForm}>
+              <div>
+                <label style={styles.label}>Full Name</label>
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="e.g. Ramesh Kumar"
+                  value={regForm.name}
+                  onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={styles.label}>Driver ID / Email</label>
+                  <input
+                    style={styles.input}
+                    type="text"
+                    placeholder="e.g. driver_01"
+                    value={regForm.email}
+                    onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>Create Password</label>
+                  <input
+                    style={styles.input}
+                    type="password"
+                    placeholder="Min 4 characters"
+                    value={regForm.password}
+                    onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={styles.label}>Vehicle Number</label>
+                  <input
+                    style={styles.input}
+                    type="text"
+                    placeholder="e.g. DL-01-AB-1234"
+                    value={regForm.vehicleNumber}
+                    onChange={(e) => setRegForm({ ...regForm, vehicleNumber: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>License Number</label>
+                  <input
+                    style={styles.input}
+                    type="text"
+                    placeholder="e.g. DL-142023000987"
+                    value={regForm.licenseNumber}
+                    onChange={(e) => setRegForm({ ...regForm, licenseNumber: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={styles.label}>Contact Phone</label>
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="+91 ..."
+                  value={regForm.phone}
+                  onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                />
+              </div>
+
+              <button type="submit" style={styles.authButton} disabled={authLoading}>
+                {authLoading ? "Registering..." : "Register Driver Account"}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------
+  // 6. MAIN AUTHENTICATED CONSOLE
+  // --------------------------------------------------
   const score = Math.min(100, Math.max(0, Number(detection.score) || 0));
   const status = detection.status || "OFFLINE";
   const statusColor = getStatusColor(status);
 
-  // --------------------------------------------------
-  // 5. RENDER UI
-  // --------------------------------------------------
   return (
     <div style={styles.app}>
       {/* SIDEBAR */}
@@ -228,7 +448,46 @@ export default function App() {
           ))}
         </nav>
 
+        {/* LOGGED IN DRIVER PROFILE IN SIDEBAR */}
         <div style={styles.sidebarBottom}>
+          <div style={{ background: "#1e293b", borderRadius: "10px", padding: "12px", marginBottom: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700" }}>
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ overflow: "hidden" }}>
+                <div style={{ fontWeight: "700", fontSize: "13px", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>
+                  {user.name}
+                </div>
+                <small style={{ color: "#94a3b8", fontSize: "11px" }}>
+                  {user.vehicleNumber || user.email}
+                </small>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                if (confirm("Are you sure you want to sign out?")) {
+                  logout();
+                }
+              }}
+              style={{
+                width: "100%",
+                background: "#ef444420",
+                color: "#f87171",
+                border: "1px solid #ef444440",
+                borderRadius: "6px",
+                padding: "6px 0",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                marginTop: "10px",
+              }}
+            >
+              🚪 Sign Out
+            </button>
+          </div>
+
           <div style={styles.deviceStatus}>
             <span
               style={{
@@ -242,7 +501,7 @@ export default function App() {
                 {detection.camera ? "AI Camera Active" : "Camera Standby"}
               </div>
               <small style={{ color: "#94a3b8", fontSize: "11px" }}>
-                {backendOnline ? "MongoDB API Connected" : "Local Demo Mode"}
+                {backendOnline ? "Atlas Connected" : "Local Sync"}
               </small>
             </div>
           </div>
@@ -256,7 +515,7 @@ export default function App() {
           <div>
             <h1 style={styles.heading}>{activePage}</h1>
             <p style={styles.subtitle}>
-              IoT-Based Driver Drowsiness Detection & Alert Platform
+              Active Session: <strong>{user.name}</strong> • Vehicle: <strong>{user.vehicleNumber || "Not assigned"}</strong>
             </p>
           </div>
 
@@ -272,7 +531,7 @@ export default function App() {
                   color: devices.some((d) => d.status === "Online") ? "#22c55e" : "#ef4444",
                 }}
               >
-                {devices.some((d) => d.status === "Online") ? "● HARDWARE SYNCED" : "● DISCONNECTED"}
+                {devices.some((d) => d.status === "Online") ? "● HARDWARE ONLINE" : "● STANDBY"}
               </span>
             </div>
           </div>
@@ -297,18 +556,18 @@ export default function App() {
                 description={getStatusDescription(status)}
               />
               <StatCard
-                title="Active Fleet Drivers"
-                value={drivers.filter((d) => d.status === "ACTIVE").length || 4}
+                title="Registered Drivers"
+                value={drivers.length}
                 icon="👤"
                 color="#3b82f6"
-                description={`${drivers.length || 4} drivers registered`}
+                description={`${drivers.length} driver(s) in database`}
               />
               <StatCard
-                title="IoT Alert Devices"
-                value={devices.filter((d) => d.status === "Online").length || 1}
+                title="Hardware Devices"
+                value={devices.filter((d) => d.status === "Online").length}
                 icon="📡"
                 color="#8b5cf6"
-                description={`${devices.length || 3} hardware units`}
+                description={`${devices.length} registered unit(s)`}
               />
             </section>
 
@@ -317,7 +576,7 @@ export default function App() {
               <div style={styles.card}>
                 <div style={styles.cardHeader}>
                   <div>
-                    <h2 style={styles.cardTitle}>Live AI Video Stream</h2>
+                    <h2 style={styles.cardTitle}>Live Cabin Video Stream</h2>
                     <p style={styles.cardSubtitle}>Real-time MediaPipe computer vision</p>
                   </div>
                   <span
@@ -349,7 +608,7 @@ export default function App() {
                       <div style={{ fontSize: "48px", marginBottom: "12px" }}>🎥</div>
                       <h3 style={{ margin: "0 0 6px 0", color: "#f8fafc" }}>Camera Feed Offline</h3>
                       <p style={{ color: "#94a3b8", fontSize: "14px", margin: 0 }}>
-                        Press Start Monitoring below to trigger the AI service
+                        Click "Start Monitoring" below to activate fatigue detection
                       </p>
                     </div>
                   )}
@@ -375,7 +634,7 @@ export default function App() {
                 <div style={styles.cardHeader}>
                   <div>
                     <h2 style={styles.cardTitle}>Fatigue Gauge</h2>
-                    <p style={styles.cardSubtitle}>Combined risk index</p>
+                    <p style={styles.cardSubtitle}>Continuous risk index</p>
                   </div>
                 </div>
 
@@ -399,7 +658,7 @@ export default function App() {
                   <Detail label="Eye Closure (EAR)" value={detection.eyes_closed ? "CLOSED" : `${detection.ear.toFixed(2)}`} danger={detection.eyes_closed} />
                   <Detail label="Mouth/Yawn (MAR)" value={detection.yawning ? "YAWNING" : `${detection.mar.toFixed(2)}`} danger={detection.yawning} />
                   <Detail label="Head Tilt" value={detection.head_down ? "HEAD DOWN" : (detection.head_pose === "HEAD_UP" ? "HEAD UP" : "NORMAL")} danger={detection.head_down} />
-                  <Detail label="IoT Alarm Status" value={score >= 50 ? "ACTIVE (BEEP)" : "STANDBY"} danger={score >= 50} />
+                  <Detail label="IoT Alarm Status" value={score >= 55 ? "ACTIVE (BEEP)" : "STANDBY"} danger={score >= 55} />
                 </div>
               </div>
             </section>
@@ -408,17 +667,23 @@ export default function App() {
             <div style={{ ...styles.card, marginTop: "24px" }}>
               <div style={styles.cardHeader}>
                 <div>
-                  <h2 style={styles.cardTitle}>Recent Safety Incidents</h2>
-                  <p style={styles.cardSubtitle}>Latest database alerts</p>
+                  <h2 style={styles.cardTitle}>Live Incident Alerts</h2>
+                  <p style={styles.cardSubtitle}>Real-time safety events logged in database</p>
                 </div>
                 <button onClick={() => setActivePage("Alerts")} style={styles.viewButton}>
                   View All Alerts →
                 </button>
               </div>
 
-              {alerts.slice(0, 3).map((a, idx) => (
-                <AlertItem key={a._id || idx} alert={a} onAcknowledge={handleAcknowledgeAlert} />
-              ))}
+              {alerts.length === 0 ? (
+                <p style={{ color: "#94a3b8", textAlign: "center", padding: "20px 0" }}>
+                  No incident alerts logged yet. System is safe.
+                </p>
+              ) : (
+                alerts.slice(0, 3).map((a, idx) => (
+                  <AlertItem key={a._id || idx} alert={a} onAcknowledge={handleAcknowledgeAlert} />
+                ))
+              )}
             </div>
           </>
         )}
@@ -470,15 +735,15 @@ export default function App() {
               </div>
 
               <div style={styles.card}>
-                <h3 style={{ margin: "0 0 12px 0", fontSize: "16px" }}>Hardware Alert Emulation</h3>
+                <h3 style={{ margin: "0 0 12px 0", fontSize: "16px" }}>Hardware Alert Test</h3>
                 <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px" }}>
-                  Trigger instant test buzzer on the connected ESP32 unit.
+                  Test buzzer alarm on the configured ESP32 device.
                 </p>
                 <button
                   style={{ ...styles.viewButton, background: "#ef4444", color: "white", padding: "10px 16px", width: "100%" }}
-                  onClick={() => alert("Simulated IoT Buzzer Sound sent to ESP32!")}
+                  onClick={() => alert("Test IoT Buzzer signal dispatched to ESP32!")}
                 >
-                  🔊 Test Hardware Alarm
+                  🔊 Trigger Test Buzzer
                 </button>
               </div>
             </div>
@@ -491,16 +756,18 @@ export default function App() {
             <div style={styles.cardHeader}>
               <div>
                 <h2 style={styles.cardTitle}>Safety Alerts Log</h2>
-                <p style={styles.cardSubtitle}>History of fatigue events and acknowledgments</p>
+                <p style={styles.cardSubtitle}>Real incidents generated by driver fatigue detection</p>
               </div>
               <button style={styles.viewButton} onClick={refreshBackendData}>
-                🔄 Refresh Logs
+                🔄 Refresh
               </button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px" }}>
               {alerts.length === 0 ? (
-                <p style={{ color: "#94a3b8", textAlign: "center", padding: "30px" }}>No alerts found.</p>
+                <p style={{ color: "#94a3b8", textAlign: "center", padding: "40px 0" }}>
+                  No safety alerts logged. Everything is safe.
+                </p>
               ) : (
                 alerts.map((a) => (
                   <AlertItem key={a._id} alert={a} onAcknowledge={handleAcknowledgeAlert} />
@@ -517,51 +784,57 @@ export default function App() {
               <div>
                 <h2 style={{ fontSize: "20px", fontWeight: "700", margin: 0 }}>Registered Fleet Drivers</h2>
                 <p style={{ color: "#94a3b8", margin: "4px 0 0 0", fontSize: "14px" }}>
-                  Manage authorized drivers and license records
+                  Drivers currently registered in the MongoDB database
                 </p>
               </div>
               <button style={styles.startButton} onClick={() => setShowDriverModal(true)}>
-                + Register New Driver
+                + Add Driver
               </button>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-              {drivers.map((driver) => (
-                <div key={driver._id} style={styles.card}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }}>
-                    <div style={{ width: "46px", height: "46px", borderRadius: "50%", background: "#3b82f620", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>
-                      👤
+            {drivers.length === 0 ? (
+              <div style={{ ...styles.card, textAlign: "center", padding: "40px" }}>
+                <p style={{ color: "#94a3b8", margin: 0 }}>No other drivers registered in database yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+                {drivers.map((driver) => (
+                  <div key={driver._id} style={styles.card}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }}>
+                      <div style={{ width: "46px", height: "46px", borderRadius: "50%", background: "#3b82f620", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>
+                        👤
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: "16px", color: "#f8fafc" }}>{driver.name}</h3>
+                        <span style={{ fontSize: "12px", color: "#94a3b8" }}>{driver.licenseNumber || "DL-REG"}</span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: "16px", color: "#f8fafc" }}>{driver.name}</h3>
-                      <span style={{ fontSize: "12px", color: "#94a3b8" }}>{driver.licenseNumber || "DL-PENDING"}</span>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: "#94a3b8" }}>
+                      <div>✉️ {driver.email}</div>
+                      <div>📞 {driver.phone || "Not provided"}</div>
+                    </div>
+
+                    <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #334155", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: "12px", color: driver.status === "ACTIVE" ? "#22c55e" : "#94a3b8", fontWeight: "600" }}>
+                        ● {driver.status}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Remove driver ${driver.name}?`)) {
+                            await driverService.delete(driver._id);
+                            refreshBackendData();
+                          }
+                        }}
+                        style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "12px" }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: "#94a3b8" }}>
-                    <div>✉️ {driver.email}</div>
-                    <div>📞 {driver.phone || "Not provided"}</div>
-                  </div>
-
-                  <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #334155", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", color: driver.status === "ACTIVE" ? "#22c55e" : "#94a3b8", fontWeight: "600" }}>
-                      ● {driver.status}
-                    </span>
-                    <button
-                      onClick={async () => {
-                        if (confirm(`Remove driver ${driver.name}?`)) {
-                          await driverService.delete(driver._id);
-                          refreshBackendData();
-                        }
-                      }}
-                      style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "12px" }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* NEW DRIVER MODAL */}
             {showDriverModal && (
@@ -571,15 +844,14 @@ export default function App() {
                   <form onSubmit={handleAddDriver} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     <input
                       style={styles.input}
-                      placeholder="Full Name (e.g. Suresh Kumar)"
+                      placeholder="Full Name (e.g. Vikram Singh)"
                       value={newDriver.name}
                       onChange={(e) => setNewDriver({ ...newDriver, name: e.target.value })}
                       required
                     />
                     <input
                       style={styles.input}
-                      type="email"
-                      placeholder="Email (e.g. suresh@fleet.com)"
+                      placeholder="Driver ID / Email (e.g. vikram@fleet.com)"
                       value={newDriver.email}
                       onChange={(e) => setNewDriver({ ...newDriver, email: e.target.value })}
                       required
@@ -592,7 +864,7 @@ export default function App() {
                     />
                     <input
                       style={styles.input}
-                      placeholder="License Number (e.g. DL-1420230001)"
+                      placeholder="License Number"
                       value={newDriver.licenseNumber}
                       onChange={(e) => setNewDriver({ ...newDriver, licenseNumber: e.target.value })}
                     />
@@ -614,28 +886,36 @@ export default function App() {
             <div style={styles.cardHeader}>
               <div>
                 <h2 style={styles.cardTitle}>ESP32 In-Cabin IoT Units</h2>
-                <p style={styles.cardSubtitle}>Hardware alert devices with active buzzer & LED actuators</p>
+                <p style={styles.cardSubtitle}>Hardware alert units synced with MongoDB Atlas</p>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px", marginTop: "16px" }}>
-              {devices.map((dev) => (
-                <div key={dev._id} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "12px", padding: "18px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                    <strong style={{ fontSize: "16px", color: "#f8fafc" }}>{dev.deviceId}</strong>
-                    <span style={{ color: dev.status === "Online" ? "#22c55e" : "#ef4444", fontSize: "12px", fontWeight: "600" }}>
-                      ● {dev.status}
-                    </span>
+            {devices.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
+                <span style={{ fontSize: "36px" }}>📡</span>
+                <p style={{ marginTop: "12px" }}>No ESP32 devices connected yet.</p>
+                <small>When your ESP32 powers on and connects to Wi-Fi, it will register automatically.</small>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px", marginTop: "16px" }}>
+                {devices.map((dev) => (
+                  <div key={dev._id} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "12px", padding: "18px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                      <strong style={{ fontSize: "16px", color: "#f8fafc" }}>{dev.deviceId}</strong>
+                      <span style={{ color: dev.status === "Online" ? "#22c55e" : "#ef4444", fontSize: "12px", fontWeight: "600" }}>
+                        ● {dev.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "13px", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div>Vehicle: <strong style={{ color: "#f8fafc" }}>{dev.vehicleNumber || "Cab-1"}</strong></div>
+                      <div>Location: {dev.location || "In-Transit"}</div>
+                      <div>Signal: {dev.signal || "Good"}</div>
+                      <div>Last Ping: {new Date(dev.lastPing).toLocaleTimeString()}</div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: "13px", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <div>Vehicle: <strong style={{ color: "#f8fafc" }}>{dev.vehicleNumber}</strong></div>
-                    <div>Location: {dev.location}</div>
-                    <div>Signal: {dev.signal}</div>
-                    <div>Last Sync: {new Date(dev.lastPing).toLocaleTimeString()}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -645,7 +925,7 @@ export default function App() {
             <div style={styles.cardHeader}>
               <div>
                 <h2 style={styles.cardTitle}>Drowsiness Detection Logs</h2>
-                <p style={styles.cardSubtitle}>Recent computer vision telemetry recordings</p>
+                <p style={styles.cardSubtitle}>Live computer vision telemetry recordings</p>
               </div>
               <button style={styles.viewButton} onClick={refreshBackendData}>🔄 Reload Logs</button>
             </div>
@@ -665,7 +945,7 @@ export default function App() {
                 <tbody>
                   {history.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: "center", padding: "30px", color: "#94a3b8" }}>
+                      <td colSpan={6} style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>
                         No historical logs recorded yet. Start monitoring to log sessions.
                       </td>
                     </tr>
@@ -845,15 +1125,14 @@ function getStatusDescription(status) {
 }
 
 function getRiskDescription(score) {
-  if (score >= 60) return "Critical hazard level";
-  if (score >= 30) return "Moderate risk caution";
+  if (score >= 55) return "Critical hazard level";
+  if (score >= 28) return "Moderate risk caution";
   return "Optimal safety zone";
 }
 
 // ======================================================
 // STYLES OBJECT
 // ======================================================
-
 const styles = {
   app: {
     minHeight: "100vh",
@@ -861,6 +1140,98 @@ const styles = {
     background: "#0f172a",
     color: "#f8fafc",
     fontFamily: "Inter, system-ui, -apple-system, sans-serif",
+  },
+  authContainer: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
+    padding: "20px",
+  },
+  authCard: {
+    background: "#1e293b",
+    border: "1px solid #334155",
+    borderRadius: "16px",
+    padding: "36px",
+    width: "440px",
+    maxWidth: "100%",
+    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)",
+  },
+  authHeader: {
+    textAlign: "center",
+    marginBottom: "24px",
+  },
+  authLogoIcon: {
+    fontSize: "36px",
+    background: "#3b82f620",
+    width: "60px",
+    height: "60px",
+    borderRadius: "14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 12px auto",
+  },
+  authTitle: {
+    fontSize: "24px",
+    fontWeight: "800",
+    margin: "0 0 6px 0",
+    color: "#f8fafc",
+    letterSpacing: "-0.02em",
+  },
+  authSub: {
+    fontSize: "13px",
+    color: "#94a3b8",
+    margin: 0,
+  },
+  authTabs: {
+    display: "flex",
+    borderBottom: "1px solid #334155",
+    marginBottom: "20px",
+  },
+  authTab: {
+    flex: 1,
+    background: "none",
+    border: "none",
+    padding: "10px",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  },
+  authAlert: {
+    background: "#ef444420",
+    border: "1px solid #ef444460",
+    color: "#f87171",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    fontSize: "13px",
+    marginBottom: "16px",
+  },
+  authForm: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+  },
+  label: {
+    display: "block",
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "#cbd5e1",
+    marginBottom: "4px",
+  },
+  authButton: {
+    background: "#3b82f6",
+    color: "white",
+    border: "none",
+    padding: "12px",
+    borderRadius: "8px",
+    fontWeight: "600",
+    fontSize: "14px",
+    cursor: "pointer",
+    marginTop: "8px",
+    boxShadow: "0 4px 6px -1px rgba(59, 130, 246, 0.4)",
   },
   sidebar: {
     width: "260px",
@@ -1181,6 +1552,8 @@ const styles = {
     flexShrink: 0,
   },
   input: {
+    width: "100%",
+    boxSizing: "border-box",
     background: "#0f172a",
     border: "1px solid #334155",
     color: "#f8fafc",

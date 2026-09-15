@@ -5,8 +5,12 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("drowsinessUser");
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      const savedUser = localStorage.getItem("drowsinessUser");
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
   });
   const [loading, setLoading] = useState(false);
 
@@ -14,30 +18,42 @@ export function AuthProvider({ children }) {
     if (!email || !password) {
       return {
         success: false,
-        message: "Please enter email and password",
+        message: "Please enter your Driver ID / Email and Password",
       };
     }
 
     setLoading(true);
     try {
-      const response = await authService.login(email, password);
+      const response = await authService.login(email.trim(), password);
       if (response.data && response.data.token) {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("drowsinessUser", JSON.stringify(response.data.user));
         setUser(response.data.user);
-        return { success: true };
+        return { success: true, message: response.data.message };
       }
+      return { success: false, message: "Unexpected server response" };
     } catch (err) {
-      console.warn("Backend auth offline or error, falling back to local session:", err.message);
-      // Resilient fallback for demo/offline usage
-      const fallbackUser = {
-        name: email.split("@")[0] || "Fleet Administrator",
-        email,
-        role: "admin",
-      };
-      localStorage.setItem("drowsinessUser", JSON.stringify(fallbackUser));
-      setUser(fallbackUser);
-      return { success: true };
+      const message = err.response?.data?.message || err.message || "Failed to login. Please check connection.";
+      return { success: false, message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (driverData) => {
+    setLoading(true);
+    try {
+      const response = await authService.register(driverData);
+      if (response.data && response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("drowsinessUser", JSON.stringify(response.data.user));
+        setUser(response.data.user);
+        return { success: true, message: response.data.message };
+      }
+      return { success: false, message: "Registration failed" };
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || "Registration failed. Please check details.";
+      return { success: false, message };
     } finally {
       setLoading(false);
     }
@@ -50,7 +66,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

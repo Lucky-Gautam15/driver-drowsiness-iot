@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Driver = require("../models/Driver");
 
 const generateToken = (id) => {
     return jwt.sign(
@@ -11,47 +12,67 @@ const generateToken = (id) => {
 
 const register = async (req, res) => {
     try {
-        const { name, email, password, role, phone } = req.body;
+        const { name, email, password, role, phone, vehicleNumber, licenseNumber } = req.body;
 
         if (!name || !email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Please provide name, email, and password"
+                message: "Please enter your Name, Driver ID/Email, and Password"
             });
         }
 
-        const userExists = await User.findOne({ email });
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const userExists = await User.findOne({ email: normalizedEmail });
         if (userExists) {
             return res.status(400).json({
                 success: false,
-                message: "User with this email already exists"
+                message: "A driver with this ID or Email is already registered. Please login instead."
             });
         }
 
         const user = await User.create({
             name,
-            email,
+            email: normalizedEmail,
             password,
-            role: role || "admin",
-            phone
+            role: role || "driver",
+            phone: phone || "",
+            vehicleNumber: vehicleNumber || "",
+            licenseNumber: licenseNumber || ""
         });
+
+        // Also register in Driver fleet roster
+        await Driver.findOneAndUpdate(
+            { email: normalizedEmail },
+            {
+                name,
+                email: normalizedEmail,
+                phone: phone || "",
+                licenseNumber: licenseNumber || `DL-${Date.now().toString().slice(-6)}`,
+                status: "ACTIVE"
+            },
+            { upsert: true, new: true }
+        );
 
         res.status(201).json({
             success: true,
-            message: "User registered successfully",
+            message: "Registration successful! Welcome to DrowsyGuard.",
             token: generateToken(user._id),
             user: {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                vehicleNumber: user.vehicleNumber,
+                licenseNumber: user.licenseNumber,
+                phone: user.phone
             }
         });
     } catch (error) {
         console.error("Register error:", error.message);
         res.status(500).json({
             success: false,
-            message: "Failed to register user",
+            message: "Failed to register driver account",
             error: error.message
         });
     }
@@ -64,15 +85,17 @@ const login = async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Please enter email and password"
+                message: "Please enter your Driver ID / Email and Password"
             });
         }
 
-        const user = await User.findOne({ email });
+        const normalizedEmail = email.trim().toLowerCase();
+        const user = await User.findOne({ email: normalizedEmail });
+
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password"
+                message: "Invalid Driver ID / Email or Password. Please check your credentials."
             });
         }
 
@@ -84,14 +107,17 @@ const login = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                vehicleNumber: user.vehicleNumber,
+                licenseNumber: user.licenseNumber,
+                phone: user.phone
             }
         });
     } catch (error) {
         console.error("Login error:", error.message);
         res.status(500).json({
             success: false,
-            message: "Failed to login",
+            message: "Login failed, please try again",
             error: error.message
         });
     }
@@ -106,7 +132,7 @@ const getMe = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: "Failed to get user profile",
+            message: "Failed to get driver profile",
             error: error.message
         });
     }

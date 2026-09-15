@@ -2,43 +2,7 @@ const Driver = require("../models/Driver");
 
 const getDrivers = async (req, res) => {
     try {
-        let drivers = await Driver.find().sort({ createdAt: -1 });
-
-        // If no drivers in database, seed demo drivers for initial experience
-        if (drivers.length === 0) {
-            const seedDrivers = [
-                {
-                    name: "Raj Kumar",
-                    email: "raj.kumar@fleet.com",
-                    phone: "+91 98765 43210",
-                    licenseNumber: "DL-1420110012345",
-                    status: "ACTIVE"
-                },
-                {
-                    name: "Amit Sharma",
-                    email: "amit.sharma@fleet.com",
-                    phone: "+91 98765 43211",
-                    licenseNumber: "DL-0420180054321",
-                    status: "ACTIVE"
-                },
-                {
-                    name: "Rahul Singh",
-                    email: "rahul.singh@fleet.com",
-                    phone: "+91 98765 43212",
-                    licenseNumber: "UP-3220190098765",
-                    status: "INACTIVE"
-                },
-                {
-                    name: "Vikas Kumar",
-                    email: "vikas.kumar@fleet.com",
-                    phone: "+91 98765 43213",
-                    licenseNumber: "HR-2620200034567",
-                    status: "ACTIVE"
-                }
-            ];
-
-            drivers = await Driver.insertMany(seedDrivers);
-        }
+        const drivers = await Driver.find().sort({ createdAt: -1 });
 
         res.json({
             success: true,
@@ -88,17 +52,17 @@ const createDriver = async (req, res) => {
             });
         }
 
-        const existing = await Driver.findOne({ email });
+        const existing = await Driver.findOne({ email: email.toLowerCase() });
         if (existing) {
             return res.status(400).json({
                 success: false,
-                message: "Driver with this email already exists"
+                message: "Driver with this email/ID already exists"
             });
         }
 
         const driver = await Driver.create({
             name,
-            email,
+            email: email.toLowerCase(),
             phone,
             licenseNumber,
             status: status || "ACTIVE"
@@ -106,7 +70,7 @@ const createDriver = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: "Driver created successfully",
+            message: "Driver registered successfully",
             driver
         });
     } catch (error) {

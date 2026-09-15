@@ -5,45 +5,10 @@ const getAlerts = async (req, res) => {
         const { unacknowledgedOnly } = req.query;
         const query = unacknowledgedOnly === "true" ? { acknowledged: false } : {};
 
-        let alerts = await Alert.find(query)
+        const alerts = await Alert.find(query)
             .populate("driver", "name email vehicleNumber")
             .sort({ createdAt: -1 })
             .limit(50);
-
-        if (alerts.length === 0 && unacknowledgedOnly !== "true") {
-            const seedAlerts = [
-                {
-                    type: "DROWSINESS",
-                    message: "Driver eyes remained closed for 3.1 seconds.",
-                    severity: "CRITICAL",
-                    score: 85,
-                    acknowledged: false
-                },
-                {
-                    type: "YAWNING",
-                    message: "Multiple yawning events detected within 60 seconds.",
-                    severity: "HIGH",
-                    score: 65,
-                    acknowledged: true
-                },
-                {
-                    type: "HEAD_DOWN",
-                    message: "Driver head tilt downwards detected.",
-                    severity: "MEDIUM",
-                    score: 45,
-                    acknowledged: true
-                },
-                {
-                    type: "EYES_CLOSED",
-                    message: "Eye Aspect Ratio (EAR) dropped below 0.18.",
-                    severity: "HIGH",
-                    score: 70,
-                    acknowledged: true
-                }
-            ];
-
-            alerts = await Alert.insertMany(seedAlerts);
-        }
 
         res.json({
             success: true,

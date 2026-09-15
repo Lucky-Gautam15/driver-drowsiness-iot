@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema(
         },
         email: {
             type: String,
-            required: [true, "Email is required"],
+            required: [true, "Email or Driver ID is required"],
             unique: true,
             lowercase: true,
             trim: true
@@ -18,16 +18,27 @@ const userSchema = new mongoose.Schema(
         password: {
             type: String,
             required: [true, "Password is required"],
-            minlength: [6, "Password must be at least 6 characters"]
+            minlength: [4, "Password must be at least 4 characters"]
         },
         role: {
             type: String,
-            enum: ["admin", "driver", "fleet_manager"],
-            default: "admin"
+            enum: ["driver", "admin", "fleet_manager"],
+            default: "driver"
+        },
+        vehicleNumber: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+        licenseNumber: {
+            type: String,
+            trim: true,
+            default: ""
         },
         phone: {
             type: String,
-            trim: true
+            trim: true,
+            default: ""
         }
     },
     {
