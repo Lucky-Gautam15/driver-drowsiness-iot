@@ -147,17 +147,17 @@ function MainAppContent() {
         detectionService.getAll(30),
       ]);
 
-      if (driversRes.status === "fulfilled" && driversRes.value.data.drivers) {
+      if (driversRes.status === "fulfilled" && Array.isArray(driversRes.value?.data?.drivers)) {
         setDrivers(driversRes.value.data.drivers);
         setBackendOnline(true);
       }
-      if (devicesRes.status === "fulfilled" && devicesRes.value.data.devices) {
+      if (devicesRes.status === "fulfilled" && Array.isArray(devicesRes.value?.data?.devices)) {
         setDevices(devicesRes.value.data.devices);
       }
-      if (alertsRes.status === "fulfilled" && alertsRes.value.data.alerts) {
+      if (alertsRes.status === "fulfilled" && Array.isArray(alertsRes.value?.data?.alerts)) {
         setAlerts(alertsRes.value.data.alerts);
       }
-      if (histRes.status === "fulfilled" && histRes.value.data.detections) {
+      if (histRes.status === "fulfilled" && Array.isArray(histRes.value?.data?.detections)) {
         setHistory(histRes.value.data.detections);
       }
     } catch (err) {
@@ -453,14 +453,14 @@ function MainAppContent() {
           <div style={{ background: "#1e293b", borderRadius: "10px", padding: "12px", marginBottom: "12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700" }}>
-                {user.name.charAt(0).toUpperCase()}
+                {(user?.name || user?.email || "D").charAt(0).toUpperCase()}
               </div>
               <div style={{ overflow: "hidden" }}>
                 <div style={{ fontWeight: "700", fontSize: "13px", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>
-                  {user.name}
+                  {user?.name || user?.email || "Driver"}
                 </div>
                 <small style={{ color: "#94a3b8", fontSize: "11px" }}>
-                  {user.vehicleNumber || user.email}
+                  {user?.vehicleNumber || user?.email || "Fleet Member"}
                 </small>
               </div>
             </div>
@@ -515,7 +515,7 @@ function MainAppContent() {
           <div>
             <h1 style={styles.heading}>{activePage}</h1>
             <p style={styles.subtitle}>
-              Active Session: <strong>{user.name}</strong> • Vehicle: <strong>{user.vehicleNumber || "Not assigned"}</strong>
+              Active Session: <strong>{user?.name || user?.email || "Driver"}</strong> • Vehicle: <strong>{user?.vehicleNumber || "Not assigned"}</strong>
             </p>
           </div>
 

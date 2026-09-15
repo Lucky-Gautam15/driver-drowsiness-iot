@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "../services/api";
 
 const AuthContext = createContext();
@@ -7,8 +7,17 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem("drowsinessUser");
-      return savedUser ? JSON.parse(savedUser) : null;
+      if (!savedUser) return null;
+      const parsed = JSON.parse(savedUser);
+      if (parsed && typeof parsed === "object" && (parsed.name || parsed.email)) {
+        return parsed;
+      }
+      localStorage.removeItem("drowsinessUser");
+      localStorage.removeItem("token");
+      return null;
     } catch (e) {
+      localStorage.removeItem("drowsinessUser");
+      localStorage.removeItem("token");
       return null;
     }
   });
