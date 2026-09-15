@@ -2,6 +2,7 @@ import threading
 import time
 
 import cv2
+import numpy as np
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -184,10 +185,16 @@ def detection_loop():
             face = face_detector.detect(frame)
 
             if face is None:
+                no_face_frame = frame.copy()
+                cv2.rectangle(no_face_frame, (12, 12), (320, 55), (15, 23, 42), -1)
+                cv2.rectangle(no_face_frame, (12, 12), (320, 55), (0, 165, 255), 2)
+                cv2.putText(no_face_frame, "STATUS: NO FACE DETECTED", (22, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+                with frame_lock:
+                    latest_frame = no_face_frame
 
                 detection_data.update({
                     "status": "NO FACE",
-                    "score": 0,
+                    "score": 0.0,
                     "ear": 0.0,
                     "mar": 0.0,
                     "head_pose": "UNKNOWN",
@@ -199,7 +206,6 @@ def detection_loop():
                 })
 
                 time.sleep(0.01)
-
                 continue
 
             # ---------------------------------------------
@@ -250,6 +256,34 @@ def detection_loop():
                 mar,
                 head_pose
             )
+
+            # ---------------------------------------------
+            # Visual HUD & Landmark Overlay for Live Stream
+            # ---------------------------------------------
+            annotated_frame = frame.copy()
+
+            # Eye contours (Green for awake, Red for closed)
+            eye_color = (0, 0, 255) if result["eyes_closed"] else (0, 255, 0)
+            cv2.polylines(annotated_frame, [np.array(left_eye, dtype=np.int32)], True, eye_color, 2)
+            cv2.polylines(annotated_frame, [np.array(right_eye, dtype=np.int32)], True, eye_color, 2)
+
+            # Mouth contour (Green for normal, Orange for yawn)
+            mouth_color = (0, 165, 255) if result["yawning"] else (0, 255, 0)
+            cv2.polylines(annotated_frame, [np.array(mouth, dtype=np.int32)], True, mouth_color, 2)
+
+            # HUD Telemetry Overlay banner
+            hud_bg_color = (0, 0, 180) if result["status"] == "DROWSY" else ((0, 140, 220) if result["status"] == "WARNING" else (0, 120, 0))
+            cv2.rectangle(annotated_frame, (12, 12), (380, 80), (15, 23, 42), -1)
+            cv2.rectangle(annotated_frame, (12, 12), (380, 80), hud_bg_color, 2)
+
+            status_text = f"AI STATUS: {result['status']} ({result['score']}%)"
+            cv2.putText(annotated_frame, status_text, (22, 38), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
+
+            metrics_text = f"EAR: {result['ear']:.3f} | MAR: {result['mar']:.3f} | {head_pose}"
+            cv2.putText(annotated_frame, metrics_text, (22, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
+
+            with frame_lock:
+                latest_frame = annotated_frame
 
             # ---------------------------------------------
             # Update State

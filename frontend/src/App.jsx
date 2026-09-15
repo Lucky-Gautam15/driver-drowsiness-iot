@@ -127,7 +127,7 @@ function MainAppContent() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000);
+    const interval = setInterval(fetchStatus, 300);
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -168,6 +168,7 @@ function MainAppContent() {
   useEffect(() => {
     if (user) {
       refreshBackendData();
+      startMonitoring();
       const dataInterval = setInterval(refreshBackendData, 4000);
       return () => clearInterval(dataInterval);
     }
