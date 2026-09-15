@@ -26,6 +26,7 @@ const initialDetection = {
   ear: 0,
   mar: 0,
   head_pose: "UNKNOWN",
+  pitch: 0,
   eyes_closed: false,
   yawning: false,
   head_down: false,
@@ -75,6 +76,7 @@ export default function App() {
             ear: Number(data.ear ?? 0),
             mar: Number(data.mar ?? 0),
             head_pose: data.head_pose ?? "UNKNOWN",
+            pitch: Number(data.pitch ?? 0),
             eyes_closed: Boolean(data.eyes_closed),
             yawning: Boolean(data.yawning),
             head_down: Boolean(data.head_down),
@@ -282,7 +284,7 @@ export default function App() {
             <section style={styles.statsGrid}>
               <StatCard
                 title="Drowsiness Score"
-                value={`${score}%`}
+                value={`${Number(score).toFixed(1)}%`}
                 icon="⚡"
                 color={statusColor}
                 description={getRiskDescription(score)}
@@ -385,8 +387,8 @@ export default function App() {
                     }}
                   >
                     <div style={styles.gaugeInner}>
-                      <span style={{ fontSize: "38px", fontWeight: "800", color: statusColor }}>
-                        {score}%
+                      <span style={{ fontSize: "32px", fontWeight: "800", color: statusColor }}>
+                        {Number(score).toFixed(1)}%
                       </span>
                       <small style={{ color: "#94a3b8" }}>Fatigue Level</small>
                     </div>
@@ -396,7 +398,7 @@ export default function App() {
                 <div style={styles.detailsGrid}>
                   <Detail label="Eye Closure (EAR)" value={detection.eyes_closed ? "CLOSED" : `${detection.ear.toFixed(2)}`} danger={detection.eyes_closed} />
                   <Detail label="Mouth/Yawn (MAR)" value={detection.yawning ? "YAWNING" : `${detection.mar.toFixed(2)}`} danger={detection.yawning} />
-                  <Detail label="Head Tilt" value={detection.head_down ? "HEAD DOWN" : detection.head_pose} danger={detection.head_down} />
+                  <Detail label="Head Tilt" value={detection.head_down ? "HEAD DOWN" : (detection.head_pose === "HEAD_UP" ? "HEAD UP" : "NORMAL")} danger={detection.head_down} />
                   <Detail label="IoT Alarm Status" value={score >= 50 ? "ACTIVE (BEEP)" : "STANDBY"} danger={score >= 50} />
                 </div>
               </div>
@@ -462,8 +464,8 @@ export default function App() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <MetricRow label="Eye Aspect Ratio (EAR)" value={detection.ear.toFixed(3)} target="> 0.22" ok={detection.ear >= 0.22} />
                   <MetricRow label="Mouth Aspect Ratio (MAR)" value={detection.mar.toFixed(3)} target="< 0.60" ok={detection.mar < 0.60} />
-                  <MetricRow label="Head Pitch/Pose" value={detection.head_pose} target="NORMAL" ok={!detection.head_down} />
-                  <MetricRow label="Attention Score" value={`${Math.max(0, 100 - score)}%`} target="> 50%" ok={score < 50} />
+                  <MetricRow label="Head Pitch / Tilt" value={`${detection.head_pose} (${detection.pitch > 0 ? '+' : ''}${detection.pitch}°)`} target="NORMAL (0°)" ok={!detection.head_down} />
+                  <MetricRow label="Attention Score" value={`${Math.max(0, 100 - score).toFixed(1)}%`} target="> 50%" ok={score < 50} />
                 </div>
               </div>
 
@@ -678,7 +680,7 @@ export default function App() {
                             {row.status}
                           </span>
                         </td>
-                        <td style={{ padding: "12px 10px", fontWeight: "700" }}>{row.score}%</td>
+                        <td style={{ padding: "12px 10px", fontWeight: "700" }}>{Number(row.score).toFixed(1)}%</td>
                         <td style={{ padding: "12px 10px" }}>{Number(row.ear).toFixed(2)}</td>
                         <td style={{ padding: "12px 10px" }}>{Number(row.mar).toFixed(2)}</td>
                         <td style={{ padding: "12px 10px" }}>{row.headPose}</td>

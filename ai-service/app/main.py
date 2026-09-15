@@ -55,6 +55,7 @@ detection_data = {
     "ear": 0.0,
     "mar": 0.0,
     "head_pose": "UNKNOWN",
+    "pitch": 0.0,
     "eyes_closed": False,
     "yawning": False,
     "head_down": False,
@@ -97,6 +98,7 @@ def reset_detection_state():
         "ear": 0.0,
         "mar": 0.0,
         "head_pose": "UNKNOWN",
+        "pitch": 0.0,
         "eyes_closed": False,
         "yawning": False,
         "head_down": False,
@@ -189,6 +191,7 @@ def detection_loop():
                     "ear": 0.0,
                     "mar": 0.0,
                     "head_pose": "UNKNOWN",
+                    "pitch": 0.0,
                     "eyes_closed": False,
                     "yawning": False,
                     "head_down": False,
@@ -263,6 +266,8 @@ def detection_loop():
                 "mar": result["mar"],
 
                 "head_pose": head_pose,
+
+                "pitch": head_result.get("pitch", 0.0),
 
                 "eyes_closed": result["eyes_closed"],
 
