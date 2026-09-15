@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import Hologram3D from "./Hologram3D";
+import React, { useState } from "react";
+import DriverMeshHUD from "./DriverMeshHUD";
 
 export default function Login3D({
   loginForm,
@@ -47,7 +47,7 @@ export default function Login3D({
       <div className="lux-grid-overlay"></div>
 
       <div className="lux-portal-wrapper">
-        {/* LEFT PANEL: AUTOMOTIVE COCKPIT 3D TELEMETRY SHOWCASE */}
+        {/* LEFT PANEL: REAL COMPUTER VISION DRIVER DROWSINESS SHOWCASE */}
         <div className="lux-cockpit-panel">
           <div className="lux-brand-header">
             <div className="lux-shield-icon">
@@ -58,11 +58,11 @@ export default function Login3D({
             </div>
             <div>
               <div className="lux-brand-title">DrowsyGuard OS</div>
-              <div className="lux-brand-subtitle">AI & IoT Commercial Fleet Safety Cockpit</div>
+              <div className="lux-brand-subtitle">AI & IoT Real-Time Driver Drowsiness Detection System</div>
             </div>
           </div>
 
-          {/* INTERACTIVE 3D WEBGL HOLOGRAM HUD CARD WITH 3D TILT */}
+          {/* COMPUTER VISION HUD CARD WITH 3D TILT */}
           <div
             className="lux-hud-card"
             style={{
@@ -73,53 +73,13 @@ export default function Login3D({
           >
             <div className="lux-hud-header">
               <span className="lux-hud-pill">
-                <span className="lux-hud-dot"></span> 3D CABIN TELEMETRY HOLOGRAM
+                <span className="lux-hud-dot"></span> REAL-TIME FACIAL FATIGUE DETECTION
               </span>
-              <span className="lux-hud-fps">60 FPS WEBGL • 14ms LATENCY</span>
+              <span className="lux-hud-fps">MEDIAPIPE CV • 60 FPS</span>
             </div>
 
-            {/* EMBEDDED THREE.JS 3D WEBGL INTERACTIVE CANVAS */}
-            <div style={{ position: "relative" }}>
-              <Hologram3D />
-
-              {/* OVERLAY RETICLE BADGE */}
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "12px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  background: "rgba(8, 14, 28, 0.8)",
-                  border: "1px solid rgba(34, 197, 94, 0.35)",
-                  padding: "4px 14px",
-                  borderRadius: "20px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                <span
-                  style={{
-                    width: "7px",
-                    height: "7px",
-                    borderRadius: "50%",
-                    background: "#22c55e",
-                    boxShadow: "0 0 8px #22c55e",
-                  }}
-                ></span>
-                <span
-                  style={{
-                    fontSize: "10px",
-                    fontWeight: "700",
-                    letterSpacing: "0.08em",
-                    color: "#4ade80",
-                  }}
-                >
-                  3D DRIVER MESH SYNCED
-                </span>
-              </div>
-            </div>
+            {/* COMPUTER VISION CABIN DRIVER TELEMETRY WITH FACIAL MESH & CROSSHAIRS */}
+            <DriverMeshHUD />
 
             <div className="lux-hud-stats" style={{ marginTop: "14px" }}>
               <div className="lux-stat-item">
