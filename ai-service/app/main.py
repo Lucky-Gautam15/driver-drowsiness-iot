@@ -17,6 +17,8 @@ from app.algorithms.mar import calculate_mar
 from app.algorithms.drowsiness import DrowsinessDetector
 
 from app.camera.camera import Camera
+from app.config import settings
+from app.services.alert_service import alert_service
 
 
 # =========================================================
@@ -123,9 +125,9 @@ def initialize_detection():
     head_pose_detector = HeadPoseDetector()
 
     drowsiness_detector = DrowsinessDetector(
-        ear_threshold=0.22,
-        mar_threshold=0.60,
-        max_closed_frames=15
+        ear_threshold=settings.EAR_THRESHOLD,
+        mar_threshold=settings.MAR_THRESHOLD,
+        max_closed_frames=settings.MAX_CLOSED_FRAMES
     )
 
 
@@ -270,6 +272,9 @@ def detection_loop():
 
                 "camera": True
             })
+
+            # Notify backend asynchronously if critical or periodic
+            alert_service.notify_detection(detection_data)
 
             time.sleep(0.01)
 
